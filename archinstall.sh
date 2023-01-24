@@ -182,16 +182,12 @@ passwd $USERNAME
 pacman -S gnome gnome-extra
 systemctl enable gdm.service
 
-    exit
-}
-
-
-echo "You can now leave the chroot. Please do the following:\
-umount /boot/efi
-exit
-zfs umount -a
-zpool export zroot
-reboot"
+echo "You can now leave the chroot. Please do the following:"
+echo "umount /boot/efi"
+echo "exit"
+echo "zfs umount -a"
+echo "zpool export zroot"
+echo "reboot"
 
 nextstep
 # We should somehow install the microcode-updates...
@@ -201,7 +197,7 @@ nextstep
 
 if [ $STEP = 1 ]; then
     step1
-else if [ $STEP = 2 ]; then
+elif [ $STEP = 2 ]; then
     step2
 fi
 
