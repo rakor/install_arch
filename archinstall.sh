@@ -175,7 +175,7 @@ passwd $USERNAME
 # install gnome
 pacman -S gnome gnome-extra
 systemctl enable gdm.service
-systemctl enable NetworkManager
+systemctl enable NetworkManager.service
 
 echo "You can now leave the chroot. Please do the following:"
 echo "umount /boot/efi"
