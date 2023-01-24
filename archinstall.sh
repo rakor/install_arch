@@ -45,6 +45,7 @@ mkfs.fat -F 32 /dev/disk/by-partlabel/efi-part
 curl -s https://raw.githubusercontent.com/eoli3n/archiso-zfs/master/init | bash
 modprobe zfs
 
+echo "Creating the ZFS-pool. Give your encryption-key"
 # create the zpool
 zpool create \
 -o ashift=12 \
@@ -82,6 +83,7 @@ zpool export zroot
 # reimport the pool
 zpool import -d /dev/disk/by-partlabel -R /mnt zroot -N
 # load the encryption-key
+echo "Type your ZFS-encryption-key to unlock the pool"
 zfs load-key zroot
 
 # mount the datasets
@@ -108,6 +110,7 @@ sed -i -e 's|^\(\S*\s\+\S*\s\+zfs\)|#\1|' /mnt/etc/fstab
 nextstep
 cp $0 /mnt/root/
 cp $STATUSFILE /mnt/root
+chmod 777 /mnt/root/$0
 
 echo "Type 'arch-chroot /mnt' to switch into the new installation"
 echo "Then change directory to /root and start the script another time"
@@ -168,7 +171,9 @@ echo "Please set password for 'root'"
 passwd
 
 # last steps to prepare the installation
+echo "Creating user $USERNAME"
 useradd -m -G wheel $USERNAME
+echo "Please give the password to set for user $USERNAME"
 passwd $USERNAME
 
 
