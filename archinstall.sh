@@ -19,12 +19,6 @@ nextstep(){
     echo "STEP=$STEP" > $STATUSFILE
 }
 
-
-echo $STEP
-nextstep
-
-echo $STEP
-
 step1(){
 #German keyboardlayout
 loadkeys de-latin1
