@@ -6,7 +6,7 @@ $MYHOSTNAME=archlinux
 
 
 # Datei die den Installationsstatus haelt
-STATUSFILE=~/testr.txt
+STATUSFILE=~/archinstallservice.txt
 
 if [ -e $STATUSFILE ]; then
   . $STATUSFILE
