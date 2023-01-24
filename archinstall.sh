@@ -2,7 +2,7 @@
 
 USERNAME=rakor
 HDD=/dev/vda
-$MYHOSTNAME=archlinux
+MYHOSTNAME=archlinux
 
 
 # Datei die den Installationsstatus haelt
