@@ -3,6 +3,7 @@
 USERNAME=rakor
 HDD=/dev/vda
 MYHOSTNAME=archlinux
+ADDITIONALPACKETS=
 
 
 # Datei die den Installationsstatus haelt
@@ -78,12 +79,9 @@ step1(){
     zfs create -o com.sun:auto-snapshot=false zroot/var/lib/docker
     zfs create zroot/var/games
     zfs create -o com.sun:auto-snapshot=false  zroot/tmp
-    chmod 1777 /mnt/tmp
     zfs create zroot/data/home/$USERNAME
     zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
-    zfs create -o com.sun:auto-snapshot=false rpool/home/$USERNAME/${USERNAME}-home
-    chmod 700 /mnt/root
-    chmod 700 /home/$USERNAME
+    zfs create -o com.sun:auto-snapshot=false zroot/home/$USERNAME/${USERNAME}-home
 
 # export the pool
     zpool export zroot
@@ -92,6 +90,11 @@ step1(){
 # load the encryption-key
     echo "Type your ZFS-encryption-key to unlock the pool"
     zfs load-key zroot
+
+# set permissions
+    chmod 700 /mnt/root
+    chmod 700 /home/$USERNAME
+    chmod 1777 /mnt/tmp
 
 # mount the datasets
     zfs mount zroot/ROOT/default
@@ -153,7 +156,7 @@ step2(){
     pacman -S zfs-dkms linux-headers
 
 #create the initrd
-    mkinitcpio -P
+#    mkinitcpio -P
 
 
 # install bootmanager zbm
