@@ -81,7 +81,7 @@ step1(){
     zfs create -o com.sun:auto-snapshot=false  zroot/tmp
     zfs create zroot/data/home/$USERNAME
     zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
-    zfs create -o com.sun:auto-snapshot=false zroot/home/$USERNAME/${USERNAME}-home
+    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
 
 # export the pool
     zpool export zroot
