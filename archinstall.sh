@@ -3,7 +3,9 @@
 USERNAME=rakor
 HDD=/dev/vda
 MYHOSTNAME=archlinux
-ADDITIONALPACKETS=
+ADDITIONALPACKETS="man-pages-de syncthing ufw"
+SWAPGB=2
+EFIGB=1
 
 
 # Datei die den Installationsstatus haelt
@@ -30,11 +32,11 @@ step1(){
 # Partitioning
 # Create a GPT-layout and inside an efs-partition, swap, and root-pool
     parted $HDD mklabel gpt
-    parted $HDD mkpart efi-part fat32 1MiB 1GiB
+    parted $HDD mkpart efi-part fat32 1MiB ${EFIGB}GiB
     parted $HDD set 1 esp on
 # create a 2GB swap partition (Important: the last value is the
 # endpoint, not the size!
-    parted $HDD mkpart swap linux-swap 1GiB 3GiB
+    parted $HDD mkpart swap linux-swap 1GiB $(($EFIGB+$SWAPGB))GiB
 # rest for the pool
     parted $HDD mkpart zpool 3GiB 100%
 
@@ -79,26 +81,23 @@ step1(){
     zfs create -o com.sun:auto-snapshot=false zroot/var/lib/docker
     zfs create zroot/var/games
     zfs create -o com.sun:auto-snapshot=false  zroot/tmp
-    zfs create zroot/data/home/$USERNAME
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
 
 # export the pool
     zpool export zroot
 # reimport the pool
     zpool import -d /dev/disk/by-partlabel -R /mnt zroot -N
 # load the encryption-key
+    echo;echo
     echo "Type your ZFS-encryption-key to unlock the pool"
     zfs load-key zroot
-
-# set permissions
-    chmod 700 /mnt/root
-    chmod 700 /home/$USERNAME
-    chmod 1777 /mnt/tmp
 
 # mount the datasets
     zfs mount zroot/ROOT/default
     zfs mount -a
+
+# set permissions
+    chmod 700 /mnt/root
+    chmod 1777 /mnt/tmp
 
 # prepare the pool to boot
     zpool set bootfs=zroot/ROOT/default zroot
@@ -122,6 +121,7 @@ step1(){
     cp $STATUSFILE /mnt/root
     chmod 777 /mnt/root/$0
 
+    echo;echo
     echo "Type 'arch-chroot /mnt' to switch into the new installation"
     echo "Then change directory to /root and start the script another time"
 
@@ -153,14 +153,14 @@ step2(){
     pacman-key --recv-keys DDF7DB817396A49B2A2723F7403BD972F75D9D76
     pacman-key --finger DDF7DB817396A49B2A2723F7403BD972F75D9D76
     pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
-    pacman -S zfs-dkms linux-headers
+    pacman -S --noconfirm zfs-dkms linux-headers
 
 #create the initrd
 #    mkinitcpio -P
 
 
 # install bootmanager zbm
-    pacman -S efibootmgr
+    pacman -S --noconfirm efibootmgr
     mkdir -p /boot/efi/EFI/zbm
     curl -L https://get.zfsbootmenu.org/efi/release -o /boot/efi/EFI/zbm/zfsbootmenu.EFI
     efibootmgr -c -d $HDD -p 1 -L "ZFSBootMenu" -l '\EFI\zbm\zfsbootmenu.EFI' -u "zbm.prefer=zroot rd.vconsole.keymap=de-latin1 quiet"
@@ -177,21 +177,36 @@ step2(){
     mkinitcpio -P
 
 # Set password for root
+    echo;echo
     echo "Please set password for 'root'"
     passwd
 
 # last steps to prepare the installation
+
+# Create user and its datasets
+    echo;echo
     echo "Creating user $USERNAME"
     useradd -m -G wheel $USERNAME
     echo "Please give the password to set for user $USERNAME"
     passwd $USERNAME
-
+    mv /home/$USERNAME /home/TEMPUSER
+    zfs create zroot/data/home/$USERNAME
+    zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
+    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
+    cp -r /home/TEMPUSER/.[^.]* /home/$USERNAME
+    cp -r /home/TEMPUSER/* /home/$USERNAME
+    rm -r /home/TEMPUSER
+    chown $USERNAME:$USERNAME /home/$USERNAME
+    chown $USERNAME:$USERNAME /home/$USERNAME/Downloads
+    chown $USERNAME:$USERNAME /home/$USERNAME/${USERNAME}-home
+    chmod 700 /mnt/home/$USERNAME
 
 # install gnome
-    pacman -S gnome gnome-extra
+    pacman -S --noconfirm gnome gnome-extra
     systemctl enable gdm.service
     systemctl enable NetworkManager.service
 
+    echo;echo
     echo "You can now leave the chroot. Please do the following:"
     echo "umount /boot/efi"
     echo "exit"
