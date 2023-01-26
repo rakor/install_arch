@@ -81,6 +81,12 @@ step1(){
     zfs create -o com.sun:auto-snapshot=false zroot/var/lib/docker
     zfs create zroot/var/games
     zfs create -o com.sun:auto-snapshot=false  zroot/tmp
+    zfs create zroot/data/home/$USERNAME
+    zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
+    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
+    cp -r /etc/skel/.[^.]* /home/$USERNAME
+    cp -r /etc/skel/* /home/$USERNAME
+    chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 # export the pool
     zpool export zroot
@@ -98,6 +104,7 @@ step1(){
 # set permissions
     chmod 700 /mnt/root
     chmod 1777 /mnt/tmp
+    chmod 700 /mnt/home/$USERNAME
 
 # prepare the pool to boot
     zpool set bootfs=zroot/ROOT/default zroot
@@ -143,7 +150,7 @@ step2(){
 
 # prepare mkinitcpio
     sed -i -e 's|^\s*\(HOOKS=.*\)\(filesystems.*\)|\1 zfs \2|' /etc/mkinitcpio.conf
-    sed -i -e 's|^\s*\(HOOKS=.*\) fsck \(.*\)|\1 \2|' /etc/mkinitcpio.conf
+    sed -i -e 's|^\s*\(HOOKS=.*\)fsck\(.*\)|\1 \2|' /etc/mkinitcpio.conf
 
 # install zfs into the new installation
     echo [archzfs] >> /etc/pacman.conf
@@ -189,17 +196,6 @@ step2(){
     useradd -m -G wheel $USERNAME
     echo "Please give the password to set for user $USERNAME"
     passwd $USERNAME
-    mv /home/$USERNAME /home/TEMPUSER
-    zfs create zroot/data/home/$USERNAME
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
-    cp -r /home/TEMPUSER/.[^.]* /home/$USERNAME
-    cp -r /home/TEMPUSER/* /home/$USERNAME
-    rm -r /home/TEMPUSER
-    chown $USERNAME:$USERNAME /home/$USERNAME
-    chown $USERNAME:$USERNAME /home/$USERNAME/Downloads
-    chown $USERNAME:$USERNAME /home/$USERNAME/${USERNAME}-home
-    chmod 700 /mnt/home/$USERNAME
 
 # install gnome
     pacman -S --noconfirm gnome gnome-extra
