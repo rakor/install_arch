@@ -3,7 +3,7 @@
 USERNAME=rakor
 HDD=/dev/vda
 MYHOSTNAME=archlinux
-ADDITIONALPACKETS="man-pages-de syncthing ufw restic git fish unzip gnome gnome-extra"
+ADDITIONALPACKETS="man-pages-de man-db syncthing ufw restic git fish unzip gnome gnome-extra"
 ENABLESERVICES="NetworkManager ufw gdm"
 SWAPGB=1
 EFIGB=1
