@@ -15,7 +15,7 @@ additionalCommands(){
     ufw allow syncthing
     chsh -s /usr/bin/fish $USERNAME	
     
-    curl https://github.com/rakor/resticbackupscript/archive/master.zip -o /root/backupscript.zip
+    curl -s https://github.com/rakor/resticbackupscript/archive/master.zip -o /root/backupscript.zip
     unzip backupscript.zip
     rm backupscript.zip
     sh resticbackupscript-master/install.sh
@@ -26,16 +26,15 @@ additionalCommands(){
 
     ####
     # vimrc
-    curl -s
-    https://raw.githubusercontent.com/rakor/config/master/home/.vimrc -o /root/.vimrc
+    curl -s https://raw.githubusercontent.com/rakor/config/master/home/.vimrc -o /root/.vimrc
     chown root:root /root/.vimrc
     chmod 644 /root/.vimrc
-    https://raw.githubusercontent.com/rakor/config/master/home/.vimrc -o /home/$USERNAME/.vimrc
+    curl -s https://raw.githubusercontent.com/rakor/config/master/home/.vimrc -o /home/$USERNAME/.vimrc
     chown $USERNAME:$USERNAME /home/$USERNAME/.vimrc
     chmod 644 /home/$USERNAME/.vimrc
     mkdir -p /root/.vim/colors
     mkdir -p /home/$USERNAME/.vim/colors
-    curl https://raw.githubusercontent.com/tomasr/molokai/master/colors/molokai.vim -o /home/$USERNAME/.vim/colors/molokai.vim
+    curl -s https://raw.githubusercontent.com/tomasr/molokai/master/colors/molokai.vim -o /home/$USERNAME/.vim/colors/molokai.vim
     cp /home/$USERNAME/.vim/colors/molokai.vim /root/.vim/colors/molokai.vim
     chown $USERNAME:$USERNAME -R /home/$USERNAME/.vim
 
