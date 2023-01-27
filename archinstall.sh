@@ -84,9 +84,6 @@ step1(){
     zfs create zroot/data/home/$USERNAME
     zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
     zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
-    cp -r /etc/skel/.[^.]* /home/$USERNAME
-    cp -r /etc/skel/* /home/$USERNAME
-    chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 # export the pool
     zpool export zroot
@@ -100,11 +97,6 @@ step1(){
 # mount the datasets
     zfs mount zroot/ROOT/default
     zfs mount -a
-
-# set permissions
-    chmod 700 /mnt/root
-    chmod 1777 /mnt/tmp
-    chmod 700 /mnt/home/$USERNAME
 
 # prepare the pool to boot
     zpool set bootfs=zroot/ROOT/default zroot
@@ -122,6 +114,14 @@ step1(){
 
 # remove the zfs-datasets vom fstab
     sed -i -e 's|^\(\S*\s\+\S*\s\+zfs\)|#\1|' /mnt/etc/fstab
+    
+# set permissions
+    cp -r /mnt/etc/skel/.[^.]* /mnt/home/$USERNAME
+    cp -r /mnt/etc/skel/* /mnt/home/$USERNAME
+    chown -R $USERNAME:$USERNAME /mnt/home/$USERNAME
+    chmod 700 /mnt/root
+    chmod 1777 /mnt/tmp
+    chmod 700 /mnt/home/$USERNAME
 
     nextstep
     cp $0 /mnt/root/
