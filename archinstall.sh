@@ -7,25 +7,41 @@ ADDITIONALPACKETS="man-pages-de man-db syncthing ufw restic git fish unzip gnome
 ENABLESERVICES="NetworkManager ufw gdm"
 SWAPGB=1
 EFIGB=1
+ROOTPOOL=zroot
 
 # Put in additional commands to run as root after the installation has
 # finished inside the new environment
 additionalCommands(){
+    # enable ufw and allow syncthing
     ufw enable
     ufw allow syncthing
+
+    # set fish as defaultshell for user
     chsh -s /usr/bin/fish $USERNAME	
     
-    curl -s https://github.com/rakor/resticbackupscript/archive/master.zip -o /root/backupscript.zip
+    #Install restic-backup-scripts and cron-backup
+    curl -L -s https://github.com/rakor/resticbackupscript/archive/master.zip -o /root/backupscript.zip
     unzip backupscript.zip
     rm backupscript.zip
     sh resticbackupscript-master/install.sh
     sed -e "s[^\s*RESTIC=.*\$[RESTIC=/usr/bin/restic[" resticbackupscript-master/resticrc_debian > /root/.resticrc
     rm -rf resticbackupscript-master
-    echo "#!/bin/sh\n/usr/local/bin/resticbackup cron" > /etc/cron.hourly/backup
-    chmod 755 /etc/cron.hourly/backup
+    echo "[Unit]"                                       >> /etc/systemd/system/resticbackup.service
+    echo "Description=create a restic-backup"           >> /etc/systemd/system/resticbackup.service
+    echo "[Service]"                                    >> /etc/systemd/system/resticbackup.service
+    echo "Type=oneshot"                                 >> /etc/systemd/system/resticbackup.service
+    echo "Environment=\"HOME=/root\""                   >> /etc/systemd/system/resticbackup.service
+    echo "ExecStart=/usr/local/bin/resticbackup --rc /root/.resticrc cron"   >> /etc/systemd/system/resticbackup.service
+    echo "[Unit]"                                       >> /etc/systemd/system/resticbackup.timer
+    echo "Description=Start a restic-backup every hour" >> /etc/systemd/system/resticbackup.timer
+    echo "[Timer]"                                      >> /etc/systemd/system/resticbackup.timer
+    echo "OnBootSec=10min"                              >> /etc/systemd/system/resticbackup.timer
+    echo "OnUnitActiveSec=1h"                           >> /etc/systemd/system/resticbackup.timer
+    echo "[Install]"                                    >> /etc/systemd/system/resticbackup.timer
+    echo "WantedBy=timers.target"                       >> /etc/systemd/system/resticbackup.timer
 
     ####
-    # vimrc
+    # Install vimrc and colors
     curl -s https://raw.githubusercontent.com/rakor/config/master/home/.vimrc -o /root/.vimrc
     chown root:root /root/.vimrc
     chmod 644 /root/.vimrc
@@ -38,11 +54,16 @@ additionalCommands(){
     cp /home/$USERNAME/.vim/colors/molokai.vim /root/.vim/colors/molokai.vim
     chown $USERNAME:$USERNAME -R /home/$USERNAME/.vim
 
+    echo " /!\\ ADDITIONAL INFORMATION /!\\"
+    echo
     echo "RESTIC"
     echo "======"
     echo "Please don't forget to set repository and password for the restic-backups in /root/.resticrc."
     echo "Then you have to 'resticcmd init' the repository if it is a new one."	
-    
+    echo
+    echo "After having setup the resticrc, enable the service with"
+    echo "  systemctl enable resticbackup.timer"
+    echo;echo 
     echo "Syncthing"
     echo "========="
     echo "If you want to start syncthing automatically at logon of your"
@@ -113,41 +134,41 @@ step1(){
     -O keyformat=passphrase \
     -O keylocation=prompt \
     -R /mnt \
-    zroot /dev/disk/by-partlabel/zpool
+    ${ROOTPOOL} /dev/disk/by-partlabel/zpool
 
 	# create the datasets
-    zfs create -o mountpoint=none zroot/data
-    zfs create -o mountpoint=none zroot/ROOT
-    zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/default
-    zfs create -o mountpoint=/home zroot/data/home
-    zfs create -o mountpoint=/root zroot/data/home/root
-    zfs create -o mountpoint=/var -o canmount=off zroot/var
-    zfs create zroot/var/log
-    zfs create -o mountpoint=/var/lib -o canmount=off zroot/var/lib
-    zfs create -o com.sun:auto-snapshot=false zroot/var/lib/libvirt
-    zfs create -o com.sun:auto-snapshot=false zroot/var/lib/docker
-    zfs create zroot/var/games
-    zfs create -o com.sun:auto-snapshot=false  zroot/tmp
-    zfs create zroot/data/home/$USERNAME
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/${USERNAME}/Downloads
-    zfs create -o com.sun:auto-snapshot=false zroot/data/home/$USERNAME/${USERNAME}-home
+    zfs create -o mountpoint=none ${ROOTPOOL}/data
+    zfs create -o mountpoint=none ${ROOTPOOL}/ROOT
+    zfs create -o mountpoint=/ -o canmount=noauto ${ROOTPOOL}/ROOT/default
+    zfs create -o mountpoint=/home ${ROOTPOOL}/data/home
+    zfs create -o mountpoint=/root ${ROOTPOOL}/data/home/root
+    zfs create -o mountpoint=/var -o canmount=off ${ROOTPOOL}/var
+    zfs create ${ROOTPOOL}/var/log
+    zfs create -o mountpoint=/var/lib -o canmount=off ${ROOTPOOL}/var/lib
+    zfs create -o com.sun:auto-snapshot=false ${ROOTPOOL}/var/lib/libvirt
+    zfs create -o com.sun:auto-snapshot=false ${ROOTPOOL}/var/lib/docker
+    zfs create ${ROOTPOOL}/var/games
+    zfs create -o com.sun:auto-snapshot=false  ${ROOTPOOL}/tmp
+    zfs create ${ROOTPOOL}/data/home/$USERNAME
+    zfs create -o com.sun:auto-snapshot=false ${ROOTPOOL}/data/home/${USERNAME}/Downloads
+    zfs create -o com.sun:auto-snapshot=false ${ROOTPOOL}/data/home/$USERNAME/${USERNAME}-home
 
 	# export the pool
-    zpool export zroot
+    zpool export ${ROOTPOOL}
 	# reimport the pool
-    zpool import -d /dev/disk/by-partlabel -R /mnt zroot -N
+    zpool import -d /dev/disk/by-partlabel -R /mnt ${ROOTPOOL} -N
 	# load the encryption-key
     echo;echo
     echo "Type your ZFS-encryption-key to unlock the pool"
-    zfs load-key zroot
+    zfs load-key ${ROOTPOOL}
 
 	# mount the datasets
-    zfs mount zroot/ROOT/default
+    zfs mount ${ROOTPOOL}/ROOT/default
     zfs mount -a
 
 	# prepare the pool to boot
-    zpool set bootfs=zroot/ROOT/default zroot
-    zpool set cachefile=/etc/zfs/zpool.cache zroot
+    zpool set bootfs=${ROOTPOOL}/ROOT/default ${ROOTPOOL}
+    zpool set cachefile=/etc/zfs/zpool.cache ${ROOTPOOL}
     mkdir -p /mnt/etc/zfs
     cp -p /etc/zfs/zpool.cache /mnt/etc/zfs/zpool.cache
 
@@ -201,18 +222,14 @@ step2(){
     pacman-key --lsign-key DDF7DB817396A49B2A2723F7403BD972F75D9D76
     pacman -S --noconfirm zfs-dkms linux-headers
 
-	#create the initrd
-	#    mkinitcpio -P
-
-
 	# install bootmanager zbm
     pacman -S --noconfirm efibootmgr
     mkdir -p /boot/efi/EFI/zbm
     curl -L https://get.zfsbootmenu.org/efi/release -o /boot/efi/EFI/zbm/zfsbootmenu.EFI
-    efibootmgr -c -d $HDD -p 1 -L "ZFSBootMenu" -l '\EFI\zbm\zfsbootmenu.EFI' -u "zbm.prefer=zroot rd.vconsole.keymap=de-latin1 quiet"
-    zfs set org.zfsbootmenu:commandline="rw" zroot/ROOT
+    efibootmgr -c -d $HDD -p 1 -L "ZFSBootMenu" -l '\EFI\zbm\zfsbootmenu.EFI' -u "zbm.prefer=${ROOTPOOL} rd.vconsole.keymap=de-latin1 quiet"
+    zfs set org.zfsbootmenu:commandline="rw" ${ROOTPOOL}/ROOT
 
-    zpool set cachefile=/etc/zfs/zpool.cache zroot
+    zpool set cachefile=/etc/zfs/zpool.cache ${ROOTPOOL}
 
 	# start and mount zfs
     systemctl enable zfs.target
@@ -256,23 +273,27 @@ step2(){
 
     done
     
-	#run additional commands that were defined at the top
-    echo "Running additional commands"
-    additionalCommands
-
-    rm /root/$STATUSFILE
-
     echo;echo
     echo "You can now leave the chroot. Please do the following:"
-    echo "umount /boot/efi"
-    echo "exit"
-    echo "zfs umount -a"
-    echo "zpool export zroot"
-    echo "reboot"
+    echo 
+    echo "  umount /boot/efi"
+    echo "  exit"
+    echo "  zfs umount -a"
+    echo "  zpool export ${ROOTPOOL}"
+    echo "  reboot"
+    echo
+    echo "After the first reboot run this script a last time..."
 
     nextstep
 	# We should somehow install the microcode-updates...
         exit
+}
+
+step3(){
+    # run additional commands set up on top.
+    additionalCommands
+    rm /root/$STATUSFILE
+    echo "Now your installation has finished... Have fun..."
 }
 
 
@@ -280,5 +301,7 @@ if [ $STEP = 1 ]; then
     step1
 elif [ $STEP = 2 ]; then
     step2
+elif [ $STEP =3 ]; then
+    step3
 fi
 
