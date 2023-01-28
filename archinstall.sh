@@ -301,7 +301,7 @@ if [ $STEP = 1 ]; then
     step1
 elif [ $STEP = 2 ]; then
     step2
-elif [ $STEP =3 ]; then
+elif [ $STEP = 3 ]; then
     step3
 fi
 
