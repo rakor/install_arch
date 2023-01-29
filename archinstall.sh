@@ -8,6 +8,10 @@ ENABLESERVICES="NetworkManager ufw gdm"
 SWAPGB=1
 EFIGB=1
 ROOTPOOL=zroot
+INTELMICROCODE="YES"
+
+# Datei die den Installationsstatus haelt
+STATUSFILE=~/archinstallservice.txt
 
 # Put in additional commands to run as root after the installation has
 # finished inside the new environment
@@ -54,6 +58,7 @@ additionalCommands(){
     cp /home/$USERNAME/.vim/colors/molokai.vim /root/.vim/colors/molokai.vim
     chown $USERNAME:$USERNAME -R /home/$USERNAME/.vim
 
+    echo;echo
     echo " /!\\ ADDITIONAL INFORMATION /!\\"
     echo
     echo "RESTIC"
@@ -76,14 +81,26 @@ additionalCommands(){
     echo "Allowing external access is not necessary for a typical installation."
 }
 
-# Datei die den Installationsstatus haelt
-STATUSFILE=~/archinstallservice.txt
-
-if [ -e $STATUSFILE ]; then
-  . $STATUSFILE
-else
-    STEP=1
-fi
+installintelmicrocode(){
+    pacman -S --noconfirm intel-ucode
+	echo "[Trigger]"                                        >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Type = Package"                                   >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Operation = Install"                              >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Operation = Upgrade"                              >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Target = linux"                                   >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo ""                                                 >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "[Trigger]"                                        >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Type = Package"                                   >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Operation = Install"                              >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Operation = Upgrade"                              >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Target = intel-ucode"                             >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo ""                                                 >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "[Action]"                                         >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Description = Adding microcode to boot image..."  >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "When = PostTransaction"                           >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Exec = /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tsf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'" >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+    /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tsf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'
+}
 
 nextstep(){
     STEP=$(($STEP+1))
@@ -102,8 +119,7 @@ step1(){
     parted $HDD mklabel gpt
     parted $HDD mkpart efi-part fat32 1MiB ${EFIGB}GiB
     parted $HDD set 1 esp on
-	# create a 2GB swap partition (Important: the last value is the
-	# endpoint, not the size!
+	# create a swap-partition (Important: the last value is the endpoint, not the size!
     parted $HDD mkpart swap linux-swap 1GiB $(($EFIGB+$SWAPGB))GiB
 	# rest for the pool
     parted $HDD mkpart zpool 3GiB 100%
@@ -263,6 +279,9 @@ step2(){
     chmod 1777 /tmp
     chmod 700 /home/$USERNAME
 
+    chmod 700 /boot
+    chmod 600 /boot/*
+    chmod 700 /boot/efi
 
 	#install additional packages
     pacman -S --noconfirm $ADDITIONALPACKETS
@@ -272,7 +291,62 @@ step2(){
         systemctl enable $i.service
 
     done
-    
+
+    if [ $INTELMICROCODE = "YES" ]; then
+        installintelmicrocode
+    fi
+
+# make zfs-snaphots on upgrade of the kernel
+	echo "[Trigger]"                                >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Type = Package"                           >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Install"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Upgrade"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Target = linux"                           >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo ""                                         >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "[Trigger]"                                >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Type = Package"                           >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Install"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Upgrade"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Target = intel-ucode"                     >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo ""                                         >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "[Trigger]"                                >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Type = Path"                              >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Install"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Operation = Upgrade"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Target = usr/lib/modules/*/vmlinuz"       >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo ""                                         >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "[Action]"                                 >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Description = Creating a backup BE... "   >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "When = PreTransaction"                    >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Exec = /bin/sh -c 'if [[ ! $(zfs list -t snapshot| grep "${ROOTPOOL}/ROOT/default@$(date "+%Y-%m-%d")_$(uname -r)" ) ]]; then zfs snapshot "zroot/e/ROOT/arch@$(date "+%Y-%m-%d")_$(uname -r)"; fi'" >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+
+
+    # Create a systemd service to perform zpool scrubs:
+	echo "[Unit]"                               >> /etc/systemd/system/zpool-scrub@.service
+	echo "Description=Zpool scrub"              >> /etc/systemd/system/zpool-scrub@.service
+	echo "After=zfs-load-key.service"           >> /etc/systemd/system/zpool-scrub@.service
+	echo ""                                     >> /etc/systemd/system/zpool-scrub@.service
+	echo "[Service]"                            >> /etc/systemd/system/zpool-scrub@.service
+	echo "ExecStart=/usr/bin/zpool scrub %i"    >> /etc/systemd/system/zpool-scrub@.service
+
+    # Create a systemd timer to launch scrubs periodically:
+	echo "[Unit]"                           >> /etc/systemd/system/zpool-scrub@.timer
+	echo "Description=Weekly zpool scrub"   >> /etc/systemd/system/zpool-scrub@.timer
+	echo ""                                 >> /etc/systemd/system/zpool-scrub@.timer
+	echo "[Timer]"                          >> /etc/systemd/system/zpool-scrub@.timer
+	echo "OnCalendar=Mon *-*-* 10:00:00"    >> /etc/systemd/system/zpool-scrub@.timer
+	echo "Persistent=true"                  >> /etc/systemd/system/zpool-scrub@.timer
+	echo "Unit=zpool-scrub@%i.service"      >> /etc/systemd/system/zpool-scrub@.timer
+	echo ""                                 >> /etc/systemd/system/zpool-scrub@.timer
+	echo "[Install]"                        >> /etc/systemd/system/zpool-scrub@.timer
+	echo "WantedBy=timers.target"           >> /etc/systemd/system/zpool-scrub@.timer
+
+    # Enable the periodic zpool scrub:
+    systemctl daemon-reload
+    systemctl enable zpool-scrub@${ROOTPOOL}.timer
+
+
+
     echo;echo
     echo "You can now leave the chroot. Please do the following:"
     echo 
@@ -296,6 +370,12 @@ step3(){
     echo "Now your installation has finished... Have fun..."
 }
 
+
+if [ -e $STATUSFILE ]; then
+  . $STATUSFILE
+else
+    STEP=1
+fi
 
 if [ $STEP = 1 ]; then
     step1
