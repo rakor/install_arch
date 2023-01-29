@@ -1,16 +1,19 @@
 #!/bin/sh
 
+# You really would want to configure those variables
 USERNAME=rakor
 HDD=/dev/vda
 MYHOSTNAME=archlinux
-ADDITIONALPACKETS="man-pages-de man-db syncthing ufw restic git fish unzip gnome gnome-extra"
-ENABLESERVICES="NetworkManager ufw gdm"
 SWAPGB=1
 EFIGB=1
 ROOTPOOL=zroot
 INTELMICROCODE="YES"
 
-# Datei die den Installationsstatus haelt
+# You might want to configure those variables
+ADDITIONALPACKETS="man-pages-de man-db syncthing ufw restic git fish unzip gnome gnome-extra"
+ENABLESERVICES="NetworkManager ufw gdm"
+
+# Filename holding the status of the script
 STATUSFILE=~/archinstallservice.txt
 
 # Put in additional commands to run as root after the installation has
