@@ -98,7 +98,7 @@ installintelmicrocode(){
 	echo "[Action]"                                         >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "Description = Adding microcode to boot image..."  >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "When = PostTransaction"                           >> /etc/pacman.d/hooks/01-zbm_microcode.hook
-	echo "Exec = /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tsf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'" >> /etc/pacman.d/hooks/01-zbm_microcode.hook
+	echo "Exec = /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'" >> /etc/pacman.d/hooks/01-zbm_microcode.hook
     /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tsf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'
 }
 
