@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # You really would want to configure those variables
+HAVEYOUCONFIGUREDTHESCRIPT="NO"
 USERNAME=rakor
 HDD=/dev/vda
 MYHOSTNAME=archlinux
@@ -373,6 +374,13 @@ step3(){
     echo "Now your installation has finished... Have fun..."
 }
 
+#you should have configured the script
+if [ $HAVEYOUCONFIGUREDTHESCRIPT = "NO" ]; then
+    echo "You really should configure the script first..."
+    echo "Open the script in your favorite editor and configure the variables on the top."
+    echo "exiting..."
+    exit
+fi
 
 if [ -e $STATUSFILE ]; then
   . $STATUSFILE
