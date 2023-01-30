@@ -359,22 +359,24 @@ step2(){
     fi
 
     ######  Insert backup of packagelist
+    echo "#!/bin/sh"                                        >> /usr/local/bin/mkpackagelist.sh
     echo "PACKAGELIST=/root/packagelist.txt"                >> /usr/local/bin/mkpackagelist.sh
     echo "pacman -Qe > \$PACKAGELIST"                       >> /usr/local/bin/mkpackagelist.sh
     echo "# don't list the packages from the gnome-groups"  >> /usr/local/bin/mkpackagelist.sh
     echo "for j in gnome gnome-extra ; do"                  >> /usr/local/bin/mkpackagelist.sh
-    echo "    for i in `pacman -Q -g \$j` ; do"             >> /usr/local/bin/mkpackagelist.sh
-    echo "        if ! [ \$i = "gnome" ]; then"              >> /usr/local/bin/mkpackagelist.sh
+    echo "    for i in \`pacman -Q -g \$j\` ; do"           >> /usr/local/bin/mkpackagelist.sh
+    echo "        if ! [ \$i = "gnome" ]; then"             >> /usr/local/bin/mkpackagelist.sh
     echo "            sed -i -e \"/\$i.*$/d\" \$PACKAGELIST">> /usr/local/bin/mkpackagelist.sh
     echo "        fi"                                       >> /usr/local/bin/mkpackagelist.sh
     echo "    done"                                         >> /usr/local/bin/mkpackagelist.sh
     echo "done"                                             >> /usr/local/bin/mkpackagelist.sh
+    chmod 755 /usr/local/bin/mkpackagelist.sh
 
-    echo "[Unit]"                                       >> /etc/systemd/system/mkpackagelist.service
+    echo "[Unit]"                                               >> /etc/systemd/system/mkpackagelist.service
     echo "Description=Create a list of all installed packages"  >> /etc/systemd/system/mkpackagelist.service
-    echo "[Service]"                                    >> /etc/systemd/system/mkpackagelist.service
-    echo "Type=oneshot"                                 >> /etc/systemd/system/mkpackagelist.service
-    echo "ExecStart=/usr/local/bin/mkpackagelist.sh"    >> /etc/systemd/system/mkpackagelist.service
+    echo "[Service]"                                            >> /etc/systemd/system/mkpackagelist.service
+    echo "Type=oneshot"                                         >> /etc/systemd/system/mkpackagelist.service
+    echo "ExecStart=sh -c '/usr/local/bin/mkpackagelist.sh'"    >> /etc/systemd/system/mkpackagelist.service
 
     echo "[Unit]"                                       >> /etc/systemd/system/mkpackagelist.timer
     echo "Description=Create a daily packagelist"       >> /etc/systemd/system/mkpackagelist.timer
