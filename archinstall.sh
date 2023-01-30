@@ -349,6 +349,27 @@ step2(){
     systemctl daemon-reload
     systemctl enable zpool-scrub@${ROOTPOOL}.timer
 
+
+    ######  Insert backup of packagelist
+    echo "[Unit]"                                               >> /etc/systemd/system/mkpackagelist.service
+    echo "Description=Create a list of all installed packages"  >> /etc/systemd/system/mkpackagelist.service
+    echo "[Service]"                                            >> /etc/systemd/system/mkpackagelist.service
+    echo "Type=oneshot"                                         >> /etc/systemd/system/mkpackagelist.service
+    echo "ExecStart=sh -c 'pacman -Qe > /root/packagelist.txt'" >> /etc/systemd/system/mkpackagelist.service
+
+    echo "[Unit]"                                       >> /etc/systemd/system/mkpackagelist.timer
+    echo "Description=Create a daily packagelist"       >> /etc/systemd/system/mkpackagelist.timer
+    echo "[Timer]"                                      >> /etc/systemd/system/mkpackagelist.timer
+    echo "OnBootSec=5min"                               >> /etc/systemd/system/mkpackagelist.timer
+    echo "OnUnitActiveSec=1d"                           >> /etc/systemd/system/mkpackagelist.timer
+    echo "[Install]"                                    >> /etc/systemd/system/mkpackagelist.timer
+    echo "WantedBy=timers.target"                       >> /etc/systemd/system/mkpackagelist.timer
+
+    # Enable the periodic packagelist
+    systemctl daemon-reload
+    systemctl enable mkpackagelist.timer
+
+
     # Check vor virtualisation and install spice-vdagent
     if [ `systemd-detect-virt` = "kvm" ] || [ `systemd-detect-virt` = "qemu" ]; then
         echo "You are running in a virtual environment"
