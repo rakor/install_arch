@@ -126,7 +126,7 @@ step1(){
 	# create a swap-partition (Important: the last value is the endpoint, not the size!
     parted $HDD mkpart swap linux-swap 1GiB $(($EFIGB+$SWAPGB))GiB
 	# rest for the pool
-    parted $HDD mkpart zpool 3GiB 100%
+    parted $HDD mkpart zpool $(($EFIGB+$SWAPGB))GiB 100%
 
     mkswap /dev/disk/by-partlabel/swap
 
