@@ -87,6 +87,7 @@ additionalCommands(){
 
 installintelmicrocode(){
     pacman -S --noconfirm intel-ucode
+    mkdir -p /etc/pacman.d/hooks
 	echo "[Trigger]"                                        >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "Type = Package"                                   >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "Operation = Install"                              >> /etc/pacman.d/hooks/01-zbm_microcode.hook
@@ -103,7 +104,7 @@ installintelmicrocode(){
 	echo "Description = Adding microcode to boot image..."  >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "When = PostTransaction"                           >> /etc/pacman.d/hooks/01-zbm_microcode.hook
 	echo "Exec = /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'" >> /etc/pacman.d/hooks/01-zbm_microcode.hook
-    /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tsf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'
+    /usr/bin/sh -c 'cat /boot/intel-ucode.img /boot/initramfs-linux.img > /boot/initramfs-linux-mc.img && ln -Tf /boot/vmlinuz-linux /boot/vmlinuz-linux-mc'
 }
 
 nextstep(){
@@ -301,6 +302,7 @@ step2(){
     fi
 
 # make zfs-snaphots on upgrade of the kernel
+    mkdir -p /etc/pacman.d/hooks
 	echo "[Trigger]"                                >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
 	echo "Type = Package"                           >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
 	echo "Operation = Install"                      >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
@@ -322,7 +324,7 @@ step2(){
 	echo "[Action]"                                 >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
 	echo "Description = Creating a backup BE... "   >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
 	echo "When = PreTransaction"                    >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
-	echo "Exec = /bin/sh -c 'if [[ ! $(zfs list -t snapshot| grep "${ROOTPOOL}/ROOT/default@$(date "+%Y-%m-%d")_$(uname -r)" ) ]]; then zfs snapshot "zroot/e/ROOT/arch@$(date "+%Y-%m-%d")_$(uname -r)"; fi'" >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
+	echo "Exec = /bin/sh -c 'if [[ ! \$(zfs list -t snapshot | grep \"${ROOTPOOL}/ROOT/default@\$(date "+%Y-%m-%d")_\$(uname -r)\" ) ]]; then zfs snapshot \"${ROOTPOOL}/ROOT/arch@\$(date "+%Y-%m-%d")_\$(uname -r)\"; fi'" >> /etc/pacman.d/hooks/00-zfs-snapshotter_root.hook
 
 
     # Create a systemd service to perform zpool scrubs:
